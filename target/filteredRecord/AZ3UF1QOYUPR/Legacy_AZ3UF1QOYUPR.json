@@ -1,0 +1,39 @@
+{
+  "searchResult" : {
+    "searchOutput" : {
+      "claims" : [ {
+        "claimInfoCodes" : [ {
+          "claimNumber" : "93663741",
+          "providerInfo" : {
+            "providerName" : "TEXAS RADIOLOGY ASSOCIATES",
+            "providerNumber" : "64543897888",
+            "providerNpi" : "0000000000",
+            "providerTaxId" : "911559850",
+            "referringProvName" : "",
+            "referringProvNumber" : "23850331652"
+          },
+          "patientFirstName" : "JAMES",
+          "patientLastName" : "BURGESS JR",
+          "patientMiddleInitial" : "M",
+          "claimSystemDate" : "2024-04-15",
+          "claimSystemTime" : "34477866",
+          "subAuthorizationNumber" : "00",
+          "groupInfo" : {
+            "site" : "PNX",
+            "groupNo" : "02747"
+          },
+          "patientControlNumber" : "AZ3UF1QOYUPR",
+          "claimPayment" : {
+            "checkNumber" : "31800364",
+            "checkEftNumber" : "40439433",
+            "subscriberNumber" : "0769898065",
+            "dependentCode" : "00",
+            "claimSubNumber" : "00",
+            "claimAdjustmentNumber" : "00",
+            "claimRecordId" : "01"
+          }
+        } ]
+      } ]
+    }
+  }
+}

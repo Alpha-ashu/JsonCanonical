@@ -1,0 +1,55 @@
+{
+  "data" : [ {
+    "claimIdentifiers" : {
+      "internalReferenceIdentifier" : "GMRK2R0WRW",
+      "payerClaimControlNumber" : "PNX54630084",
+      "patientAccountNumber" : "4URQRVBK80QZ",
+      "clearinghouseTraceNumber" : "XYXVEP2IK7IFHIRF",
+      "filmLocation" : { },
+      "claimReceiptLocatorNumber" : "101678830756788",
+      "filmOfficeNumber" : "15954",
+      "fileLocatorDate" : "2024-05-06",
+      "claimOtherIdentifiers" : {
+        "lineofBusinessCode" : "MCR",
+        "planBenefitTypeCode" : "MEDICAL"
+      }
+    },
+    "sourceSystemCode" : "COS",
+    "claimAdjudicationPlatformCode" : "Professional",
+    "claimTransactionIdentifier" : "PNX:54630084:0:1:20240507:8257240",
+    "claimSubmittedSourceSystemCode" : "COSM",
+    "claimSubmittedIdentifier" : "HAQHDGDNSV",
+    "patient" : {
+      "name" : {
+        "fullName" : "JAMES BURGESS JR",
+        "lastName" : "BURGESS JR",
+        "firstName" : "JAMES"
+      },
+      "gender" : "Male",
+      "dateOfBirth" : "1947-12-30",
+      "age" : "76",
+      "subscriberId" : "5037270544",
+      "memberId" : "5037270544",
+      "dependent" : "00",
+      "policyNumber" : "75525"
+    },
+    "providers" : [ {
+      "providerDataType" : "ADJUDICATED",
+      "identifiers" : {
+        "providerTaxId" : "253011563",
+        "npi" : "0000000000",
+        "otherProviderIdentifiers" : [ {
+          "providerIdentifier" : "916219374",
+          "providerIdentifierSourceSystemCode" : "MPIN"
+        }, {
+          "providerIdentifier" : "05875916676",
+          "providerIdentifierSourceSystemCode" : "PROVIDERNBR"
+        } ]
+      },
+      "name" : {
+        "firstName" : "TEXAS RADIOLOGY ASSOCIATES"
+      },
+      "role" : "BILLING"
+    } ]
+  } ]
+}
