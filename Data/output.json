@@ -1,0 +1,16 @@
+{
+  "/patients[0]/contact_info/address/street" : "/patients[0]/contact_info/address/street\t/patients[0]/contact_info/address/street\t123 Main St\t123 Main St\tMatched",
+  "/patients[0]/contact_info/email" : "/patients[0]/contact_info/email\t/patients[0]/contact_info/email\t\tjohn.doe@example.com\tNot Matched",
+  "/patients[0]/contact_info/phone_number" : "/patients[0]/contact_info/phone_number\t/patients[0]/contact_info/phone_number\t+1234567890\t+1234567890\tMatched",
+  "/Old" : "/Old\t/Old\tnull\tnull\tNot Matched",
+  "/patients[0]/last_name" : "/patients[0]/last_name\t/patients[0]/last_name\tDoe\tDoe\tMatched",
+  "/patients[0]/patient_id" : "/patients[0]/patient_id\t/patients[0]/patient_id\tP12345\tP12345\tMatched",
+  "/patients[0]/medical_history[0]/diagnosis_date" : "/patients[0]/medical_history[0]/diagnosis_date\t/patients[0]/medical_history[0]/diagnosis_date\t2018-04-20\t2018-04-20\tMatched",
+  "/patients[0]/medical_history[1]/diagnosis_date" : "/patients[0]/medical_history[1]/diagnosis_date\t/patients[0]/medical_history[1]/diagnosis_date\t2020-06-10\t2020-06-10\tMatched",
+  "/patients[0]/dob" : "/patients[0]/dob\t/patients[0]/dob\t1985-07-15\t1985-07-15\tMatched",
+  "/patients[0]/contact_info/address/state" : "/patients[0]/contact_info/address/state\t/patients[0]/contact_info/address/state\tNY\tNY\tMatched",
+  "/patients[0]/contact_info/address/zip_code" : "/patients[0]/contact_info/address/zip_code\t/patients[0]/contact_info/address/zip_code\t10001\t10001\tMatched",
+  "/patients[0]/first_name" : "/patients[0]/first_name\t/patients[0]/first_name\t\tJohn\tNot Matched",
+  "/patients[0]/gender" : "/patients[0]/gender\t/patients[0]/gender\tMale\tMale\tMatched",
+  "/patients[0]/contact_info/address/city" : "/patients[0]/contact_info/address/city\t/patients[0]/contact_info/address/city\tNew York\tNew York\tMatched"
+}

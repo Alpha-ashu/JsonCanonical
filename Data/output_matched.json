@@ -1,0 +1,17 @@
+{
+  "data" : {
+    "claimIdentifiers" : {
+      "payerClaimControlNumber" : "Value not matched"
+    },
+    "totals" : {
+      "totalClaimPaidAmount" : "Value not matched"
+    },
+    "reasonCodes" : [ {
+      "claimDenialReasonCode" : "Value not matched"
+    } ],
+    "claimType" : "Value not matched",
+    "patient" : {
+      "memberId" : "Value not matched"
+    }
+  }
+}
