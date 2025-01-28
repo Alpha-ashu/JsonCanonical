@@ -27,7 +27,7 @@ public class Process1_FindMatchedRecordFromLegacyRespone {
     private static final Logger logger = LoggerFactory.getLogger(Process1_FindMatchedRecordFromLegacyRespone.class);
 
     public static void main(String[] args) {
-        String mappingFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\mappingForFilteringFiles.xlsx";        
+        String mappingFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\mappingForFilteringFiles.xlsx";
         String legacyFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response1.json";
         String payerFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response2.json";
 
@@ -53,16 +53,15 @@ public class Process1_FindMatchedRecordFromLegacyRespone {
             for (JsonNode legacyRecord : legacyResponseArray) {
                 for (JsonNode payerRecord : payerResponseArray) {
                     Status status = compareUsingMapping(legacyRecord, payerRecord, mapping);
-                    if(status.StatusCode.equals("MATCHED"))
-                    {
+                    if (status.StatusCode.equals("MATCHED")) {
                         // Create output files for matched pairs
-                    	System.out.println(legacyRecord);
-                    	System.out.println(payerRecord);
+                        System.out.println(legacyRecord);
+                        System.out.println(payerRecord);
 
                         // Adjust the loop to wrap the JSON arrays before creating files
                         ArrayNode wrappedResponse1Array = objectMapper.createArrayNode();
                         ArrayNode wrappedResponse2Array = objectMapper.createArrayNode();
-                        
+
                         wrappedResponse1Array.add(legacyRecord);
                         wrappedResponse2Array.add(payerRecord);
 
@@ -70,17 +69,21 @@ public class Process1_FindMatchedRecordFromLegacyRespone {
                         // Create the final JSON structure for response1
                         ObjectNode finalResponse1 = objectMapper.createObjectNode();
                         finalResponse1.set("searchResult", objectMapper.createObjectNode()
-                            .set("searchOutput", objectMapper.createObjectNode()
-                                .set("claims", wrappedResponse1Array)));
+                                .set("searchOutput", objectMapper.createObjectNode()
+                                        .set("claims", wrappedResponse1Array)));
 
                         // Create the final JSON structure for response2
                         ObjectNode finalResponse2 = objectMapper.createObjectNode();
                         finalResponse2.set("data", wrappedResponse2Array);
 
+                        // Assuming status.Payer contains the payer ID
+                        String payerId = status.Payer;
+
                         // Create output files
-                        createJsonFile("Legacy_" + status.Payer + ".json", finalResponse1, objectMapper);
-                        createJsonFile("Payer_" + status.Payer + ".json", finalResponse2, objectMapper);
-                        
+                        // Create the two files in the payer-specific directory
+                        createJsonFile(payerId, "Legacy_" + payerId + ".json", finalResponse1, objectMapper);
+                        createJsonFile(payerId, "Payer_" + payerId + ".json", finalResponse2, objectMapper);
+
                         //logger.info("Match found: Document ID {} with User ID {}", response1Document.get("claimNumber").asText(), response2Document.get("payerClaimControlNumber").asText());
                     }
                 }
@@ -103,7 +106,7 @@ public class Process1_FindMatchedRecordFromLegacyRespone {
                     continue;
                 }
                 if (row.getCell(0) == null || row.getCell(1) == null) {
-                    logger.warn("Skipping row {} due to missing cells", row.getRowNum().asText());
+                    logger.warn("Skipping row {} due to missing cells");
                     continue;
                 }
                 String key = row.getCell(0).getStringCellValue();
@@ -115,6 +118,7 @@ public class Process1_FindMatchedRecordFromLegacyRespone {
     }
 
     private static Status compareUsingMapping(JsonNode response1Document, JsonNode response2Document, Map<String, String> mapping) {
+        Status status = new Status();
         int matchedCount = 0;
         int totalKeys = mapping.size();
         String payerValue = null;
@@ -130,11 +134,10 @@ public class Process1_FindMatchedRecordFromLegacyRespone {
             // Check for matching values
             if (oldValue != null && oldValue.equals(newValue)) {
                 matchedCount++;
-            }
-
-            // Fetch the "Payer" value if it exists in the mapping
-            if ("Payer".equals(oldPathKey) || "Payer".equals(newPathKey)) {
-                payerValue = (oldValue != null) ? oldValue : newValue;
+                // Fetch the "Payer" value if it exists in the mapping
+                if ("claimIdentifiers/patientAccountNumber".equals(newPathKey)) {
+                    payerValue = (oldValue != null) ? oldValue : newValue;
+                }
             }
         }
 
@@ -175,29 +178,36 @@ public class Process1_FindMatchedRecordFromLegacyRespone {
             return findNodeValue(jsonNode.path(key), keys, level + 1);
         }
     }
+    private static void createJsonFile(String payerId, String fileName, JsonNode jsonContent, ObjectMapper objectMapper) {
+        // Define the base directory
+        String baseDirectory = "target/filteredRecord/";
 
-    private static void createJsonFile(String fileName, JsonNode jsonContent, ObjectMapper objectMapper) {
-        try (FileWriter fileWriter = new FileWriter(fileName)) {
+        // Define the payer-specific directory
+        String payerDirectory = baseDirectory + payerId + "/";
+
+        // Ensure the payer directory exists
+        File directory = new File(payerDirectory);
+        if (!directory.exists()) {
+            if (directory.mkdirs()) {
+                logger.info("Directory created: {}", payerDirectory);
+            } else {
+                logger.error("Failed to create directory: {}", payerDirectory);
+                return;
+            }
+        }
+
+        // Create the full file path
+        File outputFile = new File(payerDirectory + fileName);
+
+        // Write the JSON content to the file
+        try (FileWriter fileWriter = new FileWriter(outputFile)) {
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(fileWriter, jsonContent);
-            logger.info("File created: {}", fileName);
+            logger.info("File created: {}", outputFile.getAbsolutePath());
         } catch (IOException e) {
-            logger.error("Failed to create file {}: {}", fileName, e.getMessage());
+            logger.error("Failed to create file {}: {}", outputFile.getAbsolutePath(), e.getMessage());
         }
     }
 
-
-    // Updated Status class
-    public  class Status {
-        public int Length;
-        public String StatusCode;
-        public String Payer; // Added field for Payer value
-
-        public Status() {
-            this.Length = 0;
-            this.StatusCode = "";
-            this.Payer = null; // Default to null
-        }
-    }
 }
 
 

@@ -25,9 +25,8 @@ public class Process2_CompareLegacyAndPayerPackage {
     private static final Logger logger = LoggerFactory.getLogger(Process2_CompareLegacyAndPayerPackage.class);
 
     public static void main(String[] args) {
-        String mappingFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\mapping.xlsx";
-        String oldFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\document_20250122_160011.json";
-        String newFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response2_20250122_161616.json";
+        String baseDirectory = "C:\\Users\\nezam\\source\\repos\\JsonCanonical\\target\\filteredRecord";
+        String mappingFilePath = "C:\\Users\\nezam\\source\\repos\\JsonCanonical\\src\\main\\java\\Data\\mapping.xlsx";
         String outputExcelPath = "Data/output.xlsx";
         String outputJsonPath = "Data/output_matched.json";
 
@@ -36,38 +35,57 @@ public class Process2_CompareLegacyAndPayerPackage {
 
             // Create the header row for the Excel file
             Row headerRow = sheet.createRow(0);
-            headerRow.createCell(0).setCellValue("Old Path");
-            headerRow.createCell(1).setCellValue("New Path");
-            headerRow.createCell(2).setCellValue("Old Value");
-            headerRow.createCell(3).setCellValue("New Value");
-            headerRow.createCell(4).setCellValue("Matched/Not Matched");
+            headerRow.createCell(0).setCellValue("Folder Name");
+            headerRow.createCell(1).setCellValue("Old Path");
+            headerRow.createCell(2).setCellValue("New Path");
+            headerRow.createCell(3).setCellValue("Old Value");
+            headerRow.createCell(4).setCellValue("New Value");
+            headerRow.createCell(5).setCellValue("Matched/Not Matched");
 
             // Load the mapping file
             Map<String, String> mapping = readMapping(mappingFilePath);
 
-            // Load the JSON files
             ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode oldJson = objectMapper.readTree(new File(oldFilePath));
-            JsonNode newJson = objectMapper.readTree(new File(newFilePath));
-
-            // Initialize the result JSON node
-            ObjectNode resultJson = objectMapper.createObjectNode();
-
-            // Compare and generate results
+            ObjectNode aggregatedJsonResults = objectMapper.createObjectNode();
             int rowIndex = 1; // Start writing data rows after the header
 
-            for (Map.Entry<String, String> entry : mapping.entrySet()) {
-                String oldPath = entry.getKey();
-                String newPath = entry.getValue();
+            // Get all subdirectories in the base directory
+            File baseDir = new File(baseDirectory);
+            File[] subDirectories = baseDir.listFiles(File::isDirectory);
 
-                // Process paths for both Excel and JSON creation
-                rowIndex = processPaths(oldJson, newJson, oldPath, newPath, sheet, rowIndex, resultJson);
+            if (subDirectories != null) {
+                for (File folder : subDirectories) {
+                    String folderName = folder.getName();
+                    File legacyFile = new File(folder, "Legacy_" + folderName + ".json");
+                    File payerFile = new File(folder, "Payer_" + folderName + ".json");
+
+                    // Ensure both files exist
+                    if (legacyFile.exists() && payerFile.exists()) {
+                        JsonNode legacyJson = objectMapper.readTree(legacyFile);
+                        JsonNode payerJson = objectMapper.readTree(payerFile);
+
+                        ObjectNode folderResultJson = objectMapper.createObjectNode();
+
+                        // Compare files using the mapping
+                        for (Map.Entry<String, String> entry : mapping.entrySet()) {
+                            String oldPath = entry.getKey();
+                            String newPath = entry.getValue();
+
+                            rowIndex = processPaths(legacyJson, payerJson, oldPath, newPath, sheet, rowIndex, folderResultJson);
+                        }
+
+                        // Add results for the current folder to the aggregated JSON
+                        aggregatedJsonResults.set(folderName, folderResultJson);
+                    } else {
+                        logger.warn("Skipping folder '{}' as required files are missing.", folderName);
+                    }
+                }
             }
 
-            // Write the output JSON file
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(outputJsonPath), resultJson);
+            // Write aggregated JSON results to the output file
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(outputJsonPath), aggregatedJsonResults);
 
-            // Write the Excel file
+            // Write Excel results to the output file
             try (FileOutputStream fos = new FileOutputStream(outputExcelPath)) {
                 workbook.write(fos);
             }
@@ -78,6 +96,7 @@ public class Process2_CompareLegacyAndPayerPackage {
             logger.error("An error occurred during comparison", e);
         }
     }
+
 
     private static Map<String, String> readMapping(String filePath) throws IOException {
         Map<String, String> mapping = new HashMap<>();
@@ -91,7 +110,7 @@ public class Process2_CompareLegacyAndPayerPackage {
                     continue;
                 }
                 if (row.getCell(0) == null || row.getCell(1) == null) {
-                    logger.warn("Skipping row {} due to missing cells", row.getRowNum());
+                    logger.warn("Skipping row {} due to missing cells", Integer.valueOf(row.getRowNum()));
                     continue;
                 }
                 String oldPath = row.getCell(0).getStringCellValue();
@@ -143,9 +162,21 @@ public class Process2_CompareLegacyAndPayerPackage {
             return findNodeValue(jsonContent.path(key), keys, level + 1, currentPath + "/" + key);
         }
     }
-    
+
     private static int processNode(String oldValue, String newValue, String oldPath, String newPath, int rowIndex, Sheet sheet, ObjectNode resultJson) {
-        String matchStatus = (oldValue != null && oldValue.equals(newValue)) ? "Matched" : "Not Matched";
+        String matchStatus;
+
+        // Determine match status
+        if (oldValue != null && oldValue.equals(newValue)) {
+            matchStatus = "Matched";
+        } else if (oldValue != null && newValue != null &&
+                (oldValue.toLowerCase().contains(newValue.toLowerCase()) ||
+                        newValue.toLowerCase().contains(oldValue.toLowerCase()))) {
+            matchStatus = "Partial Match";
+        }
+        else {
+            matchStatus = "Not Matched";
+        }
 
         // Write to Excel
         Row row = sheet.createRow(rowIndex++);
@@ -160,45 +191,6 @@ public class Process2_CompareLegacyAndPayerPackage {
 
         return rowIndex;
     }
-
-    /*private static int processNode(JsonNode oldNode, JsonNode newNode, String[] oldKeys, String[] newKeys, int level, String currentPath, Sheet sheet, int rowIndex, ObjectNode resultJson) {
-        if (level == oldKeys.length) {
-            rowIndex = createRecord(oldNode, newNode, currentPath, sheet, rowIndex);
-            updateJsonResult(resultJson, newKeys, newNode, oldNode);
-            return rowIndex;
-        }
-
-        String oldKey = oldKeys[level];
-        String newKey = newKeys[level];
-
-        if (oldKey.isEmpty() || newKey.isEmpty()) {
-            return processNode(oldNode, newNode, oldKeys, newKeys, level + 1, currentPath, sheet, rowIndex, resultJson);
-        }
-
-        if (oldKey.endsWith("[*]") && newKey.endsWith("[*]")) {
-            String oldArrayKey = oldKey.substring(0, oldKey.indexOf("[*]"));
-            String newArrayKey = newKey.substring(0, newKey.indexOf("[*]"));
-
-            JsonNode oldArrayNode = oldNode.path(oldArrayKey);
-            JsonNode newArrayNode = newNode.path(newArrayKey);
-
-            if (oldArrayNode.isArray() && newArrayNode.isArray()) {
-                Iterator<JsonNode> oldElements = oldArrayNode.elements();
-                Iterator<JsonNode> newElements = newArrayNode.elements();
-                int index = 0;
-
-                while (oldElements.hasNext() && newElements.hasNext()) {
-                    rowIndex = processNode(oldElements.next(), newElements.next(), oldKeys, newKeys, level + 1, currentPath + "/" + oldArrayKey + "[" + index + "]", sheet, rowIndex, resultJson);
-                    index++;
-                }
-            } else {
-                logger.warn("Expected arrays at paths: {} and {}", oldArrayKey, newArrayKey);
-            }
-        } else {
-            rowIndex = processNode(oldNode.path(oldKey), newNode.path(newKey), oldKeys, newKeys, level + 1, currentPath + "/" + oldKey, sheet, rowIndex, resultJson);
-        }
-        return rowIndex;
-    }*/
 
     private static void updateJsonResult(ObjectNode resultJson, String[] newKeys, String newValue, String oldValue) {
         ObjectNode currentNode = resultJson;
@@ -222,54 +214,24 @@ public class Process2_CompareLegacyAndPayerPackage {
         }
 
         String key = newKeys[newKeys.length - 1];
-        String resultValue = (oldValue != null && oldValue.equals(newValue)) ? newValue : "Value not matched";
-        currentNode.put(key, resultValue);
-    }
-    
-   /* private static int createRecord(JsonNode oldNode, JsonNode newNode, String currentPath, Sheet sheet, int rowIndex) {
-        String oldValue = oldNode.asText(null);
-        String newValue = newNode.asText(null);
 
-        String matchStatus = (oldValue != null && oldValue.equals(newValue)) ? "Matched" : "Not Matched";
-
-        // Write to Excel
-        Row row = sheet.createRow(rowIndex++);
-        row.createCell(0).setCellValue(currentPath); // Old Path
-        row.createCell(1).setCellValue(currentPath); // New Path
-        row.createCell(2).setCellValue(oldValue != null ? oldValue : "null"); // Old Path Value
-        row.createCell(3).setCellValue(newValue != null ? newValue : "null"); // New Path Value
-        row.createCell(4).setCellValue(matchStatus); // Match Status
-
-        return rowIndex;
-    }*/
-
-    /*private static void updateJsonResult(ObjectNode resultJson, String[] newKeys, JsonNode newValueNode, JsonNode oldValueNode) {
-        ObjectNode currentNode = resultJson;
-
-        for (int i = 0; i < newKeys.length - 1; i++) {
-            String key = newKeys[i];
-
-            if (key.endsWith("[*]")) {
-                // Handle array elements
-                String arrayKey = key.substring(0, key.indexOf("[*]"));
-                ArrayNode arrayNode = (ArrayNode) currentNode.withArray(arrayKey);
-
-                // Add placeholder object if array is empty
-                if (arrayNode.size() == 0) {
-                    arrayNode.addObject();
-                }
-                currentNode = (ObjectNode) arrayNode.get(0); // Use first array element for simplicity
-            } else {
-                currentNode = currentNode.with(key);
-            }
+        // Determine match status
+        String matchStatus;
+        if (oldValue != null && oldValue.equals(newValue)) {
+            matchStatus = "Matched";
+        } else if (oldValue != null && newValue != null &&
+                (oldValue.toLowerCase().contains(newValue.toLowerCase()) ||
+                        newValue.toLowerCase().contains(oldValue.toLowerCase()))) {
+            matchStatus = "Partial Match";
+        }
+        else {
+            matchStatus = "Not Matched";
         }
 
-        String key = newKeys[newKeys.length - 1];
-        String newValue = newValueNode.asText(null);
-        String oldValue = oldValueNode != null ? oldValueNode.asText(null) : null;
-
-        String resultValue = (oldValue != null && oldValue.equals(newValue)) ? newValue : "Value not matched";
-        currentNode.put(key, resultValue);
-    }*/
-
+        // Add detailed result to the JSON
+        ObjectNode valueNode = currentNode.putObject(key);
+        valueNode.put("OldValue", oldValue != null ? oldValue : "null");
+        valueNode.put("NewValue", newValue != null ? newValue : "null");
+        valueNode.put("Status", matchStatus);
+    }
 }

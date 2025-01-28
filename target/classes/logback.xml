@@ -6,7 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="JSON.JSONCompareDynamic" level="debug" additivity="false">
+    <logger name="JSON.Process2_CompareLegacyAndPayerPackage" level="debug" additivity="false">
         <appender-ref ref="CONSOLE" />
     </logger>
 
