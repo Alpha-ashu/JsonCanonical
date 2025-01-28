@@ -20,14 +20,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class ArrayBasedJsonCompare {
+public class Process2_CompareLegacyAndPayerPackage {
 
-    private static final Logger logger = LoggerFactory.getLogger(JSONCompareDynamic.class);
+    private static final Logger logger = LoggerFactory.getLogger(Process2_CompareLegacyAndPayerPackage.class);
 
     public static void main(String[] args) {
         String mappingFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\mapping.xlsx";
-        String oldFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response1.json";
-        String newFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response2.json";
+        String oldFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\document_20250122_160011.json";
+        String newFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response2_20250122_161616.json";
         String outputExcelPath = "Data/output.xlsx";
         String outputJsonPath = "Data/output_matched.json";
 

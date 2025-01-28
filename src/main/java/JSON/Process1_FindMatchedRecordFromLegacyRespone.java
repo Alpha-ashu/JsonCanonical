@@ -19,18 +19,17 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 //Import necessary classes
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class CompareJsonObjectsDynamic {
+public class Process1_FindMatchedRecordFromLegacyRespone {
 
-    private static final Logger logger = LoggerFactory.getLogger(CompareJsonObjectsDynamic.class);
+    private static final Logger logger = LoggerFactory.getLogger(Process1_FindMatchedRecordFromLegacyRespone.class);
 
     public static void main(String[] args) {
         String mappingFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\mappingForFilteringFiles.xlsx";        
-        String response1FilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response1.json";
-        String response2FilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response2.json";
+        String legacyFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response1.json";
+        String payerFilePath = "C:\\Users\\nezam\\eclipse-workspace\\Canocial\\src\\main\\java\\Data\\response2.json";
 
         try {
             // Load the mapping file
@@ -38,34 +37,34 @@ public class CompareJsonObjectsDynamic {
 
             // Load JSON files
             ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode response1Root = objectMapper.readTree(new File(response1FilePath));
-            JsonNode response2Root = objectMapper.readTree(new File(response2FilePath));
+            JsonNode legacyResponse = objectMapper.readTree(new File(legacyFilePath));
+            JsonNode payerResponse = objectMapper.readTree(new File(payerFilePath));
 
-         // Extract nodes to compare
-            JsonNode response1Array = response1Root.get("searchResult").get("searchOutput").get("claims");
-            JsonNode response2Array = response2Root.get("data");
+            // Extract nodes to compare
+            JsonNode legacyResponseArray = legacyResponse.get("searchResult").get("searchOutput").get("claims");
+            JsonNode payerResponseArray = payerResponse.get("data");
 
-            if (!response1Array.isArray() || !response2Array.isArray()) {
+            if (!legacyResponseArray.isArray() || !payerResponseArray.isArray()) {
                 logger.error("Expected both responses to contain arrays");
                 return;
             }
 
             // Compare and create output files
-            for (JsonNode response1Document : response1Array) {
-                for (JsonNode response2Document : response2Array) {
-                    if (compareUsingMapping(response1Document, response2Document, mapping)) {
+            for (JsonNode legacyRecord : legacyResponseArray) {
+                for (JsonNode payerRecord : payerResponseArray) {
+                    Status status = compareUsingMapping(legacyRecord, payerRecord, mapping);
+                    if(status.StatusCode.equals("MATCHED"))
+                    {
                         // Create output files for matched pairs
-                    	System.out.println(response1Document);
-                    	System.out.println(response2Document);
-                    	// Get current DateTime for naming
-                        String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+                    	System.out.println(legacyRecord);
+                    	System.out.println(payerRecord);
 
-                     // Adjust the loop to wrap the JSON arrays before creating files
+                        // Adjust the loop to wrap the JSON arrays before creating files
                         ArrayNode wrappedResponse1Array = objectMapper.createArrayNode();
                         ArrayNode wrappedResponse2Array = objectMapper.createArrayNode();
                         
-                        wrappedResponse1Array.add(response1Document);
-                        wrappedResponse2Array.add(response2Document);                        
+                        wrappedResponse1Array.add(legacyRecord);
+                        wrappedResponse2Array.add(payerRecord);
 
 
                         // Create the final JSON structure for response1
@@ -79,8 +78,8 @@ public class CompareJsonObjectsDynamic {
                         finalResponse2.set("data", wrappedResponse2Array);
 
                         // Create output files
-                        createJsonFile("response1_" + dateTime + ".json", finalResponse1, objectMapper);
-                        createJsonFile("response2_" + dateTime + ".json", finalResponse2, objectMapper);
+                        createJsonFile("Legacy_" + status.Payer + ".json", finalResponse1, objectMapper);
+                        createJsonFile("Payer_" + status.Payer + ".json", finalResponse2, objectMapper);
                         
                         //logger.info("Match found: Document ID {} with User ID {}", response1Document.get("claimNumber").asText(), response2Document.get("payerClaimControlNumber").asText());
                     }
@@ -104,7 +103,7 @@ public class CompareJsonObjectsDynamic {
                     continue;
                 }
                 if (row.getCell(0) == null || row.getCell(1) == null) {
-                    logger.warn("Skipping row {} due to missing cells", row.getRowNum());
+                    logger.warn("Skipping row {} due to missing cells", row.getRowNum().asText());
                     continue;
                 }
                 String key = row.getCell(0).getStringCellValue();
@@ -115,20 +114,44 @@ public class CompareJsonObjectsDynamic {
         return mapping;
     }
 
-    private static boolean compareUsingMapping(JsonNode response1Document, JsonNode response2Document, Map<String, String> mapping) {
+    private static Status compareUsingMapping(JsonNode response1Document, JsonNode response2Document, Map<String, String> mapping) {
+        int matchedCount = 0;
+        int totalKeys = mapping.size();
+        String payerValue = null;
+
         for (Map.Entry<String, String> entry : mapping.entrySet()) {
             String oldPathKey = entry.getKey();
             String newPathKey = entry.getValue();
 
+            // Fetch values from both JSON documents
             String oldValue = findNodeValue(response1Document, oldPathKey.split("/"), 0);
             String newValue = findNodeValue(response2Document, newPathKey.split("/"), 0);
 
+            // Check for matching values
             if (oldValue != null && oldValue.equals(newValue)) {
-                return true;
+                matchedCount++;
+            }
+
+            // Fetch the "Payer" value if it exists in the mapping
+            if ("Payer".equals(oldPathKey) || "Payer".equals(newPathKey)) {
+                payerValue = (oldValue != null) ? oldValue : newValue;
             }
         }
-        return false;
+
+        // Set the status properties based on the comparison
+        status.Length = totalKeys;
+        if (matchedCount == totalKeys) {
+            status.StatusCode = "MATCHED";
+        } else {
+            status.StatusCode = "PARTIAL_MATCH (" + matchedCount + "/" + totalKeys + ")";
+        }
+
+        // Add payerValue to the Status object
+        status.Payer = payerValue;
+
+        return status;
     }
+
 
     private static String findNodeValue(JsonNode jsonNode, String[] keys, int level) {
         if (level >= keys.length) {
@@ -161,4 +184,20 @@ public class CompareJsonObjectsDynamic {
             logger.error("Failed to create file {}: {}", fileName, e.getMessage());
         }
     }
+
+
+    // Updated Status class
+    public  class Status {
+        public int Length;
+        public String StatusCode;
+        public String Payer; // Added field for Payer value
+
+        public Status() {
+            this.Length = 0;
+            this.StatusCode = "";
+            this.Payer = null; // Default to null
+        }
+    }
 }
+
+
